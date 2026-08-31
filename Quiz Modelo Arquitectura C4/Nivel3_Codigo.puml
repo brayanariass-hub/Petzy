@@ -1,0 +1,56 @@
+@startuml Componentes_API_PatitasSeguras
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Componentes - API Principal de Dominio (Nivel 3)
+
+Container(apiGateway, "API Gateway", "YARP / .NET Core", "Punto de entrada de las peticiones de la App Móvil")
+ContainerDb(database, "Base de Datos", "PostgreSQL", "Almacenamiento transaccional")
+ContainerDb(redis, "Cache Store", "Redis", "Ubicaciones efímeras y sesiones")
+System_Ext(pasarelaPagos, "Pasarela de Pagos", "Stripe / MercadoPago")
+System_Ext(notificaciones, "Servicio Push", "Firebase FCM")
+
+Container_Boundary(apiDomain, "API Principal de Dominio (C# .NET 8)") {
+
+    ' Capa de Presentación
+    Component(solicitudesCtrl, "SolicitudesController", "ASP.NET Core REST Controller", "Expone API REST para el ciclo de vida de los servicios de paseo.")
+    Component(usuariosCtrl, "UsuariosController", "ASP.NET Core REST Controller", "Expone endpoints para gestión de perfiles, mascotas y tarifas.")
+
+    ' Capa de Lógica de Negocio (Servicios)
+    Component(solicitudService, "SolicitudService", "C# Service / MediatR Handler", "Orquesta la creación de solicitudes, verificación de estados y cierre de servicios.")
+    Component(matchingService, "MatchingService", "C# Domain Service", "Algoritmo de búsqueda de cuidadores disponibles en tiempo real según distancia.")
+    Component(pagoService, "PagoDomainService", "C# Domain Service", "Calcula tarifas, comisiones y coordina autorizaciones de cobro.")
+
+    ' Capa de Infraestructura (Repositorios y Adaptadores)
+    Component(solicitudRepo, "SolicitudRepository", "EF Core / Repository Pattern", "Persiste y recupera la entidad SolicitudServicio y su historial.")
+    Component(usuarioRepo, "UsuarioRepository", "EF Core / Repository Pattern", "Persiste agregados de Dueño, Cuidador y Mascota.")
+    Component(pagoAdapter, "PaymentGatewayAdapter", "C# Infrastructure Adapter", "Encapsula la comunicación REST con la pasarela de pagos externa.")
+    Component(notifAdapter, "NotificationAdapter", "C# Infrastructure Adapter", "Envía eventos de notificación push a dispositivos móviles.")
+}
+
+' Relaciones de entrada desde el Gateway
+Rel(apiGateway, solicitudesCtrl, "HTTP POST/PUT /api/v1/solicitudes", "JSON")
+Rel(apiGateway, usuariosCtrl, "HTTP GET/POST /api/v1/usuarios", "JSON")
+
+' Flujo Controller -> Services
+Rel(solicitudesCtrl, solicitudService, "Usa", "Inyección de Dependencias")
+Rel(solicitudesCtrl, matchingService, "Consulta cuidadores cercanos", "Inyección de Dependencias")
+Rel(usuariosCtrl, usuarioRepo, "Lee / Escribe perfiles directos", "Inyección de Dependencias")
+
+' Flujo de Lógica de Negocio
+Rel(solicitudService, pagoService, "Calcula e inicia cobro", "C# Call")
+Rel(solicitudService, solicitudRepo, "Guarda cambios de estado", "C# Call")
+Rel(solicitudService, notifAdapter, "Notifica a cuidador asignado", "C# Event")
+Rel(matchingService, redis, "Consulta geohashes de cuidadores activos", "RESP")
+
+' Flujo Services -> Infraestructura
+Rel(pagoService, pagoAdapter, "Procesa transacción", "C# Interface")
+Rel(solicitudRepo, database, "CRUD Solicitudes / Transacciones", "EF Core / Npgsql")
+Rel(usuarioRepo, database, "CRUD Usuarios / Mascotas", "EF Core / Npgsql")
+
+' Salida a Servicios Externos
+Rel(pagoAdapter, pasarelaPagos, "Tokeniza y cobra", "HTTPS / REST API")
+Rel(notifAdapter, notificaciones, "Dispara alerta Push al celular", "HTTPS / REST API")
+
+@enduml

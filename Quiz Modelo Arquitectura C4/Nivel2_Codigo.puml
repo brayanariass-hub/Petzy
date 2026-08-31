@@ -1,0 +1,53 @@
+@startuml Contenedores_PatitasSeguras
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contenedores - Patitas Seguras (Nivel 2)
+
+Person(dueno, "Dueño de Mascota", "Solicita paseos, realiza pagos y monitorea a su mascota en vivo.")
+Person(cuidador, "Cuidador / Paseador", "Acepta solicitudes, reporta ubicación GPS y recibe pagos.")
+
+System_Boundary(c1, "Sistema Patitas Seguras") {
+    Container(mobileApp, "App Móvil (iOS & Android)", "Flutter", "Interfaz única con roles dinámicos para dueños y cuidadores.")
+    Container(webAdmin, "Portal Web Admin", "React SPA", "Panel de administración para verificación de cuidadores y métricas.")
+    
+    Container(apiGateway, "API Gateway", "YARP / .NET Core", "Autenticación, enrutamiento, balanceo de carga y rate-limiting.")
+    
+    Container(backendApi, "API Principal de Dominio", "C# .NET 8 Web API", "Procesa la lógica de negocio, solicitudes, cobros, usuarios y mascotas.")
+    Container(trackingService, "Servicio de Geo-Rastreo en Vivo", "C# .NET + SignalR", "Gestiona la comunicación bidireccional mediante WebSockets para rastreo GPS.")
+    
+    ContainerDb(database, "Base de Datos Relacional", "PostgreSQL", "Guarda información transaccional de usuarios, reservas, mascotas y pagos.")
+    ContainerDb(redis, "Cache & In-Memory Store", "Redis", "Almacena ubicaciones GPS efímeras, sesiones activas y cuidadores disponibles cercanos.")
+    ContainerDb(storage, "Cloud Object Storage", "Azure", "Almacena fotos de perfil, imágenes de mascotas y antecedentes/documentos.")
+}
+
+System_Ext(pasarelaPagos, "Pasarela de Pagos", "Stripe / MercadoPago")
+System_Ext(servicioMapas, "Servicio de Mapas API", "Google Maps API")
+System_Ext(notificaciones, "Servicio Push", "Firebase Cloud Messaging (FCM)")
+
+' Relaciones de Usuarios con Front-ends
+Rel(dueno, mobileApp, "Usa para contratar y monitorear paseos", "HTTPS / WSS")
+Rel(cuidador, mobileApp, "Usa para aceptar servicios y enviar GPS en vivo", "HTTPS / WSS")
+
+' Entrada desde Front-ends al API Gateway
+Rel(mobileApp, apiGateway, "Consume endpoints REST y conexiones WebSocket", "HTTPS / WSS")
+Rel(webAdmin, apiGateway, "Administra el sistema", "HTTPS / JSON")
+
+' Enrutamiento dentro del Gateway
+Rel(apiGateway, backendApi, "Enruta peticiones de negocio", "HTTP/2 / gRPC")
+Rel(apiGateway, trackingService, "Enruta canales de seguimiento en tiempo real", "WSS")
+
+' Interacción Backend -> Datos
+Rel(backendApi, database, "Lee y escribe datos del dominio", "EF Core / SQL")
+Rel(backendApi, storage, "Sube fotos de mascotas y documentos de identidad", "HTTPS API")
+Rel(backendApi, redis, "Consulta caché de usuarios y disponibilidad", "RESP")
+
+Rel(trackingService, redis, "Guarda y lee la última posición GPS del cuidador", "RESP")
+
+' Interacción a Sistemas Externos
+Rel(backendApi, pasarelaPagos, "Solicita cobros y dispersa fondos a cuidadores", "HTTPS / REST API")
+Rel(backendApi, notificaciones, "Envía notificaciones de solicitudes y avisos", "HTTPS / REST API")
+Rel(trackingService, servicioMapas, "Calcula trayectorias y tiempo estimado de llegada (ETA)", "HTTPS / REST API")
+
+@enduml

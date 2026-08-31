@@ -1,0 +1,22 @@
+@startuml Contexto_PatitasSeguras
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contexto del Sistema - Patitas Seguras (Nivel 1)
+
+Person(dueno, "Dueño de Mascota", "Busca cuidadores, solicita servicios de paseo/cuidado y realiza pagos.")
+Person(cuidador, "Cuidador / Paseador", "Gestiona su disponibilidad, acepta solicitudes y realiza seguimiento de paseos.")
+
+System(patitasSeguras, "Sistema Patitas Seguras", "Permite la conexión en tiempo real entre dueños y cuidadores estilo Uber, gestión de reservas y monitoreo.")
+
+System_Ext(pasarelaPagos, "Pasarela de Pagos", "Procesa pagos de tarjetas, autorizaciones y transferencias electrónicas.")
+System_Ext(servicioMapas, "Servicio de Mapas API", "Provee geolocalización en tiempo real, cálculo de rutas y estimación de llegada.")
+
+Rel(dueno, patitasSeguras, "Solicita servicios, paga y califica", "HTTPS / App Móvil")
+Rel(cuidador, patitasSeguras, "Acepta solicitudes y actualiza ubicación", "HTTPS / App Móvil")
+
+Rel(patitasSeguras, pasarelaPagos, "Procesa cargos y dispersión de fondos", "HTTPS / REST API")
+Rel(patitasSeguras, servicioMapas, "Consulta coordenadas, rutas y tiempos", "HTTPS / REST API")
+
+@enduml

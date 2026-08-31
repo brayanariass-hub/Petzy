@@ -1,0 +1,69 @@
+@startuml PatitasSeguras_Dominio
+
+skinparam classAttributeIconSize 0
+
+enum EstadoServicio {
+  Pendiente
+  Aceptado
+  EnProceso
+  Finalizado
+  Cancelado
+}
+
+abstract class Usuario {
+  # Id: Guid
+  # Nombre: string
+  # Email: string
+  # Telefono: string
+  # CalificacionPromedio: double
+}
+
+class Dueño {
+  + Mascotas: IReadOnlyCollection<Mascota>
+  + RegistrarMascota(mascota: Mascota): void
+}
+
+class Cuidador {
+  + EstaDisponible: bool
+  + TarifaPorHora: decimal
+  + CambiarDisponibilidad(disponible: bool): void
+  + ActualizarUbicacion(lat: double, lon: double): void
+}
+
+class Mascota {
+  + Id: Guid
+  + Nombre: string
+  + Especie: string
+  + Raza: string
+  + IndicacionesEspeciales: string
+}
+
+class SolicitudServicio {
+  + Id: Guid
+  + Estado: EstadoServicio
+  + FechaHoraInicio: DateTime
+  + DuracionHoras: int
+  + CostoTotal: decimal
+  + AsignarCuidador(cuidador: Cuidador): void
+  + IniciarServicio(): void
+  + FinalizarServicio(): void
+}
+
+class Ubicacion <<ValueObject>> {
+  + Latitud: double
+  + Longitud: double
+}
+
+' Relaciones
+Usuario <|-- Dueño
+Usuario <|-- Cuidador
+
+Dueño "1" *-- "1..*" Mascota : posee >
+Cuidador "1" o-- "1" Ubicacion : se encuentra en >
+
+SolicitudServicio "1" --> "1" Dueño : solicitada por
+SolicitudServicio "0..1" --> "1" Cuidador : atendida por
+SolicitudServicio "1" --> "1" Mascota : involucra
+SolicitudServicio --> EstadoServicio
+
+@enduml
