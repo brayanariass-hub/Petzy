@@ -1,5 +1,6 @@
 @startuml Contenedores_PatitasSeguras
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define RELATIVE_INCLUDE 1
+!include ./C4/C4_Container.puml
 
 LAYOUT_WITH_LEGEND()
 

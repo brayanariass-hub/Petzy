@@ -1,5 +1,6 @@
 @startuml Contexto_PatitasSeguras
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!define RELATIVE_INCLUDE 1
+!include ./C4/C4_Context.puml
 
 LAYOUT_WITH_LEGEND()
 

@@ -1,5 +1,6 @@
 @startuml Componentes_API_PatitasSeguras
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!define RELATIVE_INCLUDE 1
+!include ./C4/C4_Component.puml
 
 LAYOUT_WITH_LEGEND()
 
