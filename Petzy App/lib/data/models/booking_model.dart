@@ -1,3 +1,5 @@
+import '../../domain/entities/booking_entity.dart';
+
 class BookingModel extends BookingEntity {
   BookingModel({
     required String id,

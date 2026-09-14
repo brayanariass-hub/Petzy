@@ -1,3 +1,6 @@
+import '../models/booking_model.dart';
+import '../../domain/entities/booking_entity.dart';
+
 abstract class BookingRemoteDataSource {
   Future<List<BookingModel>> fetchBookings();
   Future<BookingModel> createBooking(BookingModel booking);
