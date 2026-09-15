@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -18,7 +19,7 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authStateProvider.notifier).state = null,
+            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
           )
         ],
       ),
@@ -45,7 +46,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   title: Text('Reserva #${item.id}'),
                   subtitle: Text('Estado: ${item.status.name.toUpperCase()}'),
-                  trailing: Text('\$${item.totalAmount}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  trailing: Text('\$${item.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               );
             },

@@ -4,31 +4,53 @@ class BookingModel extends BookingEntity {
   BookingModel({
     required super.id,
     required super.petId,
-    required super.caregiverId,
-    required super.date,
+    required super.sitterId,
+    required super.sitterServiceId,
+    required super.startAt,
+    required super.endAt,
     required super.status,
-    required super.totalAmount,
+    required super.total,
   });
 
-  factory BookingModel.fromJson(Map<String, dynamic> json) {
+  factory BookingModel.fromSupabaseJson(Map<String, dynamic> json) {
     return BookingModel(
-      id: json['id'],
-      petId: json['petId'],
-      caregiverId: json['caregiverId'],
-      date: DateTime.parse(json['date']),
-      status: BookingStatus.values.byName(json['status']),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
+      id: json['id'] as String,
+      petId: json['pet_id'] as String,
+      sitterId: json['sitter_id'] as String,
+      sitterServiceId: json['sitter_service_id'] as String,
+      startAt: DateTime.parse(json['start_at'] as String),
+      endAt: DateTime.parse(json['end_at'] as String),
+      status: _statusFromSupabase(json['status'] as String),
+      total: (json['total'] as num).toDouble(),
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toSupabaseJson({required String ownerId}) {
     return {
-      'id': id,
-      'petId': petId,
-      'caregiverId': caregiverId,
-      'date': date.toIso8601String(),
-      'status': status.name,
-      'totalAmount': totalAmount,
+      'owner_id': ownerId,
+      'sitter_id': sitterId,
+      'pet_id': petId,
+      'sitter_service_id': sitterServiceId,
+      'start_at': startAt.toUtc().toIso8601String(),
+      'end_at': endAt.toUtc().toIso8601String(),
+      'duration_minutes': endAt.difference(startAt).inMinutes,
+      'subtotal': total,
+      'total': total,
+      'currency': 'COP',
     };
+  }
+
+  static BookingStatus _statusFromSupabase(String status) {
+    switch (status) {
+      case 'accepted':
+      case 'confirmed':
+        return BookingStatus.accepted;
+      case 'rejected':
+        return BookingStatus.rejected;
+      case 'completed':
+        return BookingStatus.completed;
+      default:
+        return BookingStatus.pending;
+    }
   }
 }

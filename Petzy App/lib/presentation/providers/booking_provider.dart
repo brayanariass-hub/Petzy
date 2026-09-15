@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/datasources/petzy_mock_datasource.dart';
+import '../../data/datasources/supabase_booking_datasource.dart';
 import '../../data/repositories/booking_repository_impl.dart';
 import '../../domain/entities/booking_entity.dart';
-import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../../domain/usecases/create_booking_usecase.dart';
 
-final dataSourceProvider = Provider<BookingRemoteDataSource>((ref) => PetzyMockDataSource());
+final dataSourceProvider = Provider<BookingRemoteDataSource>((ref) => SupabaseBookingDataSource());
 
 final bookingRepositoryProvider = Provider<BookingRepository>(
   (ref) => BookingRepositoryImpl(ref.watch(dataSourceProvider)),
@@ -15,8 +14,6 @@ final bookingRepositoryProvider = Provider<BookingRepository>(
 final createBookingUseCaseProvider = Provider<CreateBookingUseCase>(
   (ref) => CreateBookingUseCase(ref.watch(bookingRepositoryProvider)),
 );
-
-final authStateProvider = StateProvider<UserEntity?>((ref) => null);
 
 class BookingNotifier extends StateNotifier<AsyncValue<List<BookingEntity>>> {
   final BookingRepository _repository;
@@ -37,12 +34,8 @@ class BookingNotifier extends StateNotifier<AsyncValue<List<BookingEntity>>> {
   }
 
   Future<void> addBooking(BookingEntity booking) async {
-    try {
-      await _createBookingUseCase.execute(booking);
-      await loadBookings();
-    } catch (e) {
-      rethrow;
-    }
+    await _createBookingUseCase.execute(booking);
+    await loadBookings();
   }
 }
 

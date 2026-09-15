@@ -51,12 +51,14 @@ class AuthStateNotifier extends StateNotifier<UserEntity?> {
   Future<void> _init() async {
     try {
       final client = await _getSupabaseClient();
+      if (!mounted) return;
       final currentUser = client.auth.currentUser;
       if (currentUser != null) {
         state = _mapSupabaseUser(currentUser);
       }
 
       _authSubscription = client.auth.onAuthStateChange.listen((data) {
+        if (!mounted) return;
         final sessionUser = data.session?.user;
         if (sessionUser != null) {
           state = _mapSupabaseUser(sessionUser);
@@ -121,10 +123,27 @@ class AuthController extends StateNotifier<AuthControllerState> {
   }) async {
     state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
+    final normalizedEmail = email.trim();
+    final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegExp.hasMatch(normalizedEmail)) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Ingresa un correo electrónico válido.',
+      );
+      return false;
+    }
+    if (password.length < 6) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'La contraseña debe tener al menos 6 caracteres.',
+      );
+      return false;
+    }
+
     try {
       final client = await _getSupabaseClient();
       final response = await client.auth.signInWithPassword(
-        email: email.trim(),
+        email: normalizedEmail,
         password: password,
       );
 
@@ -199,6 +218,28 @@ class AuthController extends StateNotifier<AuthControllerState> {
         isLoading: false,
         errorMessage: _translateAuthError(e.toString()),
       );
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword(String email) async {
+    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    final normalizedEmail = email.trim();
+    final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegExp.hasMatch(normalizedEmail)) {
+      state = state.copyWith(isLoading: false, errorMessage: 'Ingresa un correo electrónico válido.');
+      return false;
+    }
+
+    try {
+      await (await _getSupabaseClient()).auth.resetPasswordForEmail(normalizedEmail);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on AuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.message));
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.toString()));
       return false;
     }
   }

@@ -1,6 +1,6 @@
 import '../../domain/entities/booking_entity.dart';
 import '../../domain/repositories/booking_repository.dart';
-import '../datasources/petzy_mock_datasource.dart';
+import '../datasources/supabase_booking_datasource.dart';
 import '../models/booking_model.dart';
 
 class BookingRepositoryImpl implements BookingRepository {
@@ -18,10 +18,12 @@ class BookingRepositoryImpl implements BookingRepository {
     final model = BookingModel(
       id: booking.id,
       petId: booking.petId,
-      caregiverId: booking.caregiverId,
-      date: booking.date,
+      sitterId: booking.sitterId,
+      sitterServiceId: booking.sitterServiceId,
+      startAt: booking.startAt,
+      endAt: booking.endAt,
       status: booking.status,
-      totalAmount: booking.totalAmount,
+      total: booking.total,
     );
     return await dataSource.createBooking(model);
   }
