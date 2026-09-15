@@ -4,9 +4,9 @@ abstract class Failure {
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure([String message = 'Error de conexión con el servidor']) : super(message);
+  const ServerFailure([super.message = 'Error de conexión con el servidor']);
 }
 
 class ValidationFailure extends Failure {
-  const ValidationFailure(String message) : super(message);
+  const ValidationFailure(super.message);
 }

@@ -1,3 +1,7 @@
+import '../../core/errors/failures.dart';
+import '../entities/booking_entity.dart';
+import '../repositories/booking_repository.dart';
+
 class CreateBookingUseCase {
   final BookingRepository repository;
 

@@ -1,19 +1,14 @@
+import '../../domain/entities/booking_entity.dart';
+
 class BookingModel extends BookingEntity {
   BookingModel({
-    required String id,
-    required String petId,
-    required String caregiverId,
-    required DateTime date,
-    required BookingStatus status,
-    required double totalAmount,
-  }) : super(
-          id: id,
-          petId: petId,
-          caregiverId: caregiverId,
-          date: date,
-          status: status,
-          totalAmount: totalAmount,
-        );
+    required super.id,
+    required super.petId,
+    required super.caregiverId,
+    required super.date,
+    required super.status,
+    required super.totalAmount,
+  });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
