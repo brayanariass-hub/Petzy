@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/petzy_mock_datasource.dart';
 import '../../data/repositories/booking_repository_impl.dart';
 import '../../domain/entities/booking_entity.dart';
+import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../../domain/usecases/create_booking_usecase.dart';
 
@@ -14,6 +15,8 @@ final bookingRepositoryProvider = Provider<BookingRepository>(
 final createBookingUseCaseProvider = Provider<CreateBookingUseCase>(
   (ref) => CreateBookingUseCase(ref.watch(bookingRepositoryProvider)),
 );
+
+final authStateProvider = StateProvider<UserEntity?>((ref) => null);
 
 class BookingNotifier extends StateNotifier<AsyncValue<List<BookingEntity>>> {
   final BookingRepository _repository;
