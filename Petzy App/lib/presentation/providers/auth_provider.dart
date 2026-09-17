@@ -23,7 +23,16 @@ UserEntity _mapSupabaseUser(User user) {
   final meta = user.userMetadata ?? {};
   final name = (meta['full_name'] as String?)?.trim();
   final roleStr = meta['role'] as String?;
-  final role = roleStr == 'caregiver' ? UserRole.caregiver : UserRole.owner;
+  // Acepta el valor anterior para no desconectar a sitters ya registrados.
+  final role = switch (roleStr) {
+    'admin' => UserRole.admin,
+    'sitter' || 'caregiver' => UserRole.sitter,
+    _ => UserRole.owner,
+  };
+
+  // Se lee el flag de metadata. Si no existe, por defecto es true solo si es owner
+  final isFirstLogin =
+      (meta['is_first_login'] as bool?) ?? (role == UserRole.owner);
 
   return UserEntity(
     id: user.id,
@@ -32,12 +41,14 @@ UserEntity _mapSupabaseUser(User user) {
         : (user.email?.split('@').first ?? 'Usuario'),
     email: user.email ?? '',
     role: role,
+    isFirstLogin: isFirstLogin,
   );
 }
 
 /// Proveedor del estado del usuario autenticado actual.
 /// Se sincroniza en tiempo real con los eventos de sesión de Supabase.
-final authStateProvider = StateNotifierProvider<AuthStateNotifier, UserEntity?>((ref) {
+final authStateProvider =
+    StateNotifierProvider<AuthStateNotifier, UserEntity?>((ref) {
   return AuthStateNotifier();
 });
 
@@ -71,9 +82,27 @@ class AuthStateNotifier extends StateNotifier<UserEntity?> {
     }
   }
 
-  /// Permite establecer manualmente el usuario (p.ej. para pruebas)
+  /// Permite establecer manualmente el usuario (p.ej. para pruebas o completar onboarding)
   void setUser(UserEntity? user) {
     state = user;
+  }
+
+  /// Marca de forma persistente que el usuario completó su onboarding inicial de mascota
+  Future<void> completeFirstLogin() async {
+    if (state == null) return;
+    final updatedUser = state!.copyWith(isFirstLogin: false);
+    state = updatedUser;
+
+    try {
+      final client = await _getSupabaseClient();
+      await client.auth.updateUser(
+        UserAttributes(
+          data: {
+            'is_first_login': false,
+          },
+        ),
+      );
+    } catch (_) {}
   }
 
   @override
@@ -105,7 +134,8 @@ class AuthControllerState {
     return AuthControllerState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage:
+          clearSuccess ? null : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -121,7 +151,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
     required String email,
     required String password,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
     final normalizedEmail = email.trim();
     final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -176,7 +207,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
     required String name,
     required UserRole role,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
     try {
       final client = await _getSupabaseClient();
@@ -186,6 +218,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
         data: {
           'full_name': name.trim(),
           'role': role.name,
+          'is_first_login':
+              role == UserRole.owner, // Solo los dueños deben hacer onboarding
         },
       );
 
@@ -203,7 +237,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
         // Requiere confirmación por correo (Confirm email activado)
         state = state.copyWith(
           isLoading: false,
-          successMessage: 'Registro exitoso. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.',
+          successMessage:
+              'Registro exitoso. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.',
         );
       }
       return true;
@@ -223,23 +258,30 @@ class AuthController extends StateNotifier<AuthControllerState> {
   }
 
   Future<bool> resetPassword(String email) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
     final normalizedEmail = email.trim();
     final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegExp.hasMatch(normalizedEmail)) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Ingresa un correo electrónico válido.');
+      state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Ingresa un correo electrónico válido.');
       return false;
     }
 
     try {
-      await (await _getSupabaseClient()).auth.resetPasswordForEmail(normalizedEmail);
+      await (await _getSupabaseClient())
+          .auth
+          .resetPasswordForEmail(normalizedEmail);
       state = state.copyWith(isLoading: false);
       return true;
     } on AuthException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.message));
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.message));
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.toString()));
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.toString()));
       return false;
     }
   }
@@ -255,10 +297,12 @@ class AuthController extends StateNotifier<AuthControllerState> {
 
   String _translateAuthError(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('invalid login credentials') || lower.contains('invalid credentials')) {
+    if (lower.contains('invalid login credentials') ||
+        lower.contains('invalid credentials')) {
       return 'Correo o contraseña incorrectos.';
     }
-    if (lower.contains('user already registered') || lower.contains('email already in use')) {
+    if (lower.contains('user already registered') ||
+        lower.contains('email already in use')) {
       return 'Ya existe una cuenta con este correo electrónico.';
     }
     if (lower.contains('password should be at least')) {
@@ -273,13 +317,15 @@ class AuthController extends StateNotifier<AuthControllerState> {
     if (lower.contains('network') || lower.contains('failed to fetch')) {
       return 'Error de conexión de red. Verifica tu internet.';
     }
-    if (lower.contains('isinitialized') || lower.contains('initialize the supabase')) {
+    if (lower.contains('isinitialized') ||
+        lower.contains('initialize the supabase')) {
       return 'Reiniciando conexión con Supabase... Por favor vuelve a presionar el botón.';
     }
     return message;
   }
 }
 
-final authControllerProvider = StateNotifierProvider<AuthController, AuthControllerState>((ref) {
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AuthControllerState>((ref) {
   return AuthController(ref);
 });

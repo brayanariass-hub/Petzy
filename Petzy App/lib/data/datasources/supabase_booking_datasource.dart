@@ -21,7 +21,8 @@ class SupabaseBookingDataSource implements BookingRemoteDataSource {
         .order('start_at', ascending: false);
 
     return (rows as List)
-        .map((row) => BookingModel.fromSupabaseJson(Map<String, dynamic>.from(row)))
+        .map((row) =>
+            BookingModel.fromSupabaseJson(Map<String, dynamic>.from(row)))
         .toList();
   }
 
@@ -34,7 +35,7 @@ class SupabaseBookingDataSource implements BookingRemoteDataSource {
 
     final row = await _client
         .from('bookings')
-        .insert(booking.toSupabaseJson(ownerId: user.id))
+        .insert(booking.toSupabaseJson())
         .select()
         .single();
 

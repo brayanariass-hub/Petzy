@@ -146,7 +146,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         top: 14,
                         left: 14,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white, size: 20),
                           onPressed: () {
                             if (context.canPop()) {
                               context.pop();
@@ -236,7 +237,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: _cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.black.withValues(alpha: 0.06)),
                   ),
                   child: TextFormField(
                     controller: _nameController,
@@ -245,9 +247,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Ej. María Pérez',
                       hintStyle: TextStyle(color: _textMuted, fontSize: 13),
-                      prefixIcon: Icon(Icons.person_outline, color: _textMuted, size: 20),
+                      prefixIcon: Icon(Icons.person_outline,
+                          color: _textMuted, size: 20),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
@@ -278,7 +282,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: _cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.black.withValues(alpha: 0.06)),
                   ),
                   child: TextFormField(
                     controller: _emailController,
@@ -287,15 +292,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     decoration: const InputDecoration(
                       hintText: 'ejemplo@correo.com',
                       hintStyle: TextStyle(color: _textMuted, fontSize: 13),
-                      prefixIcon: Icon(Icons.email_outlined, color: _textMuted, size: 20),
+                      prefixIcon: Icon(Icons.email_outlined,
+                          color: _textMuted, size: 20),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return 'Por favor ingresa tu correo electrónico';
                       }
-                      final emailRegExp = RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$');
+                      final emailRegExp =
+                          RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$');
                       if (!emailRegExp.hasMatch(val.trim())) {
                         return 'Ingresa un formato de correo válido';
                       }
@@ -325,7 +333,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         subtitle: 'Busco cuidados',
                         icon: Icons.pets_outlined,
                         isSelected: _selectedRole == UserRole.owner,
-                        onTap: () => setState(() => _selectedRole = UserRole.owner),
+                        onTap: () =>
+                            setState(() => _selectedRole = UserRole.owner),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -334,8 +343,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         title: 'Cuidador',
                         subtitle: 'Ofrezco servicios',
                         icon: Icons.volunteer_activism_outlined,
-                        isSelected: _selectedRole == UserRole.caregiver,
-                        onTap: () => setState(() => _selectedRole = UserRole.caregiver),
+                        isSelected: _selectedRole == UserRole.sitter,
+                        onTap: () =>
+                            setState(() => _selectedRole = UserRole.sitter),
                       ),
                     ),
                   ],
@@ -358,7 +368,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: _cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.black.withValues(alpha: 0.06)),
                   ),
                   child: TextFormField(
                     controller: _passwordController,
@@ -366,11 +377,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(fontSize: 14, color: _textMain),
                     decoration: InputDecoration(
                       hintText: 'Mínimo 6 caracteres',
-                      hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
-                      prefixIcon: const Icon(Icons.lock_outline, color: _textMuted, size: 20),
+                      hintStyle:
+                          const TextStyle(color: _textMuted, fontSize: 13),
+                      prefixIcon: const Icon(Icons.lock_outline,
+                          color: _textMuted, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.remove_red_eye_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword
+                              ? Icons.remove_red_eye_outlined
+                              : Icons.visibility_off_outlined,
                           color: _textMuted,
                           size: 20,
                         ),
@@ -381,7 +396,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 12),
                     ),
                     validator: (val) {
                       if (val == null || val.isEmpty) {
@@ -412,7 +428,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: _cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.black.withValues(alpha: 0.06)),
                   ),
                   child: TextFormField(
                     controller: _confirmPasswordController,
@@ -420,11 +437,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(fontSize: 14, color: _textMain),
                     decoration: InputDecoration(
                       hintText: 'Repite tu contraseña',
-                      hintStyle: const TextStyle(color: _textMuted, fontSize: 13),
-                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: _textMuted, size: 20),
+                      hintStyle:
+                          const TextStyle(color: _textMuted, fontSize: 13),
+                      prefixIcon: const Icon(Icons.lock_reset_outlined,
+                          color: _textMuted, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmPassword ? Icons.remove_red_eye_outlined : Icons.visibility_off_outlined,
+                          _obscureConfirmPassword
+                              ? Icons.remove_red_eye_outlined
+                              : Icons.visibility_off_outlined,
                           color: _textMuted,
                           size: 20,
                         ),
@@ -435,7 +456,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 12),
                     ),
                     validator: (val) {
                       if (val == null || val.isEmpty) {
@@ -469,7 +491,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           width: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text(
@@ -547,7 +570,8 @@ class _RoleSelectionCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withValues(alpha: 0.08) : Colors.white,
+          color:
+              isSelected ? activeColor.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? activeColor : inactiveBorder,
@@ -583,4 +607,3 @@ class _RoleSelectionCard extends StatelessWidget {
     );
   }
 }
-

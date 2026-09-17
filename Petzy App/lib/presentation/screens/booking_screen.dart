@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/booking_entity.dart';
 import '../providers/booking_provider.dart';
 
@@ -9,7 +10,7 @@ class BookingScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<BookingScreen> createState() => _BookingScreenState();
-  }
+}
 
 class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -38,25 +39,39 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     );
     if (!mounted || date == null) return;
 
-    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_startAt));
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(_startAt));
     if (!mounted || time == null) return;
     setState(() {
-      _startAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _startAt =
+          DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
 
   Future<void> _createBooking() async {
     if (!_formKey.currentState!.validate()) return;
     final endAt = _startAt.add(Duration(minutes: _durationMinutes));
+    final total = double.parse(_totalController.text.trim());
+    final now = DateTime.now();
     final booking = BookingEntity(
       id: '',
+      ownerId: Supabase.instance.client.auth.currentUser!.id,
       petId: _petIdController.text.trim(),
       sitterId: _sitterIdController.text.trim(),
       sitterServiceId: _serviceIdController.text.trim(),
       startAt: _startAt,
       endAt: endAt,
-      status: BookingStatus.pending,
-      total: double.parse(_totalController.text.trim()),
+      durationMinutes: _durationMinutes,
+      bufferMinutes: 0,
+      subtotal: total,
+      platformFee: 0,
+      sitterEarnings: total,
+      total: total,
+      currency: 'COP',
+      status: BookingStatus.requested,
+      pricingVersion: 1,
+      createdAt: now,
+      updatedAt: now,
     );
 
     try {
@@ -64,13 +79,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       if (mounted) context.pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
   String? _requiredUuid(String? value, String label) {
     final uuid = value?.trim() ?? '';
-    final pattern = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+    final pattern = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
     if (!pattern.hasMatch(uuid)) return '$label debe ser un UUID válido';
     return null;
   }
@@ -85,40 +102,53 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('Datos de Supabase', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text('Datos de Supabase',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('Usa los UUID reales de tu mascota, cuidador y servicio.'),
+            const Text('Usa los UUID reales de tu mascota, sitter y servicio.'),
             const SizedBox(height: 20),
             _uuidField(_petIdController, 'UUID de mascota', 'La mascota'),
-            _uuidField(_sitterIdController, 'UUID de cuidador', 'El cuidador'),
-            _uuidField(_serviceIdController, 'UUID del servicio', 'El servicio'),
+            _uuidField(_sitterIdController, 'UUID de sitter', 'El sitter'),
+            _uuidField(
+                _serviceIdController, 'UUID del servicio', 'El servicio'),
             TextFormField(
               controller: _totalController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Total (COP)', prefixText: '\$ '),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                  labelText: 'Total (COP)', prefixText: '\$ '),
               validator: (value) {
                 final total = double.tryParse(value?.trim() ?? '');
-                return total == null || total <= 0 ? 'Ingresa un total mayor que 0' : null;
+                return total == null || total <= 0
+                    ? 'Ingresa un total mayor que 0'
+                    : null;
               },
             ),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Inicio'),
-              subtitle: Text('${_startAt.day}/${_startAt.month}/${_startAt.year} ${TimeOfDay.fromDateTime(_startAt).format(context)}'),
+              subtitle: Text(
+                  '${_startAt.day}/${_startAt.month}/${_startAt.year} ${TimeOfDay.fromDateTime(_startAt).format(context)}'),
               trailing: const Icon(Icons.calendar_month),
               onTap: _selectStart,
             ),
             DropdownButtonFormField<int>(
               initialValue: _durationMinutes,
               decoration: const InputDecoration(labelText: 'Duración'),
-              items: const [60, 120, 180, 240].map((minutes) => DropdownMenuItem(value: minutes, child: Text('$minutes minutos'))).toList(),
-              onChanged: (value) => setState(() => _durationMinutes = value ?? 60),
+              items: const [60, 120, 180, 240]
+                  .map((minutes) => DropdownMenuItem(
+                      value: minutes, child: Text('$minutes minutos')))
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => _durationMinutes = value ?? 60),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: isLoading ? null : _createBooking,
-              child: isLoading ? const CircularProgressIndicator() : const Text('Crear reserva'),
+              child: isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Crear reserva'),
             ),
           ],
         ),
@@ -126,7 +156,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     );
   }
 
-  Widget _uuidField(TextEditingController controller, String label, String errorLabel) {
+  Widget _uuidField(
+      TextEditingController controller, String label, String errorLabel) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
