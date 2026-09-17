@@ -1,43 +1,38 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/constants/supabase_constants.dart';
 import '../../domain/entities/user_entity.dart';
-
-/// Obtiene el cliente de Supabase garantizando que la instancia esté inicializada.
-/// Si la app solo fue recargada (Hot Reload) sin ejecutar main(), la inicializa dinámicamente.
-Future<SupabaseClient> _getSupabaseClient() async {
-  try {
-    return Supabase.instance.client;
-  } catch (_) {
-    await Supabase.initialize(
-      url: SupabaseConstants.supabaseUrl,
-      publishableKey: SupabaseConstants.supabasePublishableKey,
-    );
-    return Supabase.instance.client;
-  }
-}
 
 /// Convierte un User de Supabase a nuestra entidad de dominio [UserEntity]
 UserEntity _mapSupabaseUser(User user) {
   final meta = user.userMetadata ?? {};
-  final name = (meta['full_name'] as String?)?.trim();
+  final firstName = (meta['first_name'] as String?)?.trim();
+  final lastName = (meta['last_name'] as String?)?.trim();
+  final fullName = (meta['full_name'] as String?)?.trim();
+  final name = [firstName, lastName]
+      .whereType<String>()
+      .where((part) => part.isNotEmpty)
+      .join(' ');
   final roleStr = meta['role'] as String?;
-  final role = roleStr == 'caregiver' ? UserRole.caregiver : UserRole.owner;
+  final role = roleStr == 'sitter' ? UserRole.sitter : UserRole.owner;
 
   return UserEntity(
     id: user.id,
-    name: (name != null && name.isNotEmpty)
+    name: name.isNotEmpty
         ? name
-        : (user.email?.split('@').first ?? 'Usuario'),
+        : (fullName != null && fullName.isNotEmpty)
+            ? fullName
+            : (user.email?.split('@').first ?? 'Usuario'),
     email: user.email ?? '',
     role: role,
+    profileComplete: roleStr == 'owner' || roleStr == 'sitter',
   );
 }
 
 /// Proveedor del estado del usuario autenticado actual.
 /// Se sincroniza en tiempo real con los eventos de sesión de Supabase.
-final authStateProvider = StateNotifierProvider<AuthStateNotifier, UserEntity?>((ref) {
+final authStateProvider =
+    StateNotifierProvider<AuthStateNotifier, UserEntity?>((ref) {
   return AuthStateNotifier();
 });
 
@@ -50,7 +45,7 @@ class AuthStateNotifier extends StateNotifier<UserEntity?> {
 
   Future<void> _init() async {
     try {
-      final client = await _getSupabaseClient();
+      final client = Supabase.instance.client;
       if (!mounted) return;
       final currentUser = client.auth.currentUser;
       if (currentUser != null) {
@@ -105,7 +100,8 @@ class AuthControllerState {
     return AuthControllerState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage:
+          clearSuccess ? null : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -121,7 +117,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
     required String email,
     required String password,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
     final normalizedEmail = email.trim();
     final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -141,7 +138,7 @@ class AuthController extends StateNotifier<AuthControllerState> {
     }
 
     try {
-      final client = await _getSupabaseClient();
+      final client = Supabase.instance.client;
       final response = await client.auth.signInWithPassword(
         email: normalizedEmail,
         password: password,
@@ -173,18 +170,23 @@ class AuthController extends StateNotifier<AuthControllerState> {
   Future<bool> signUpWithEmail({
     required String email,
     required String password,
-    required String name,
+    required String firstName,
+    required String lastName,
+    required String phone,
     required UserRole role,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
     try {
-      final client = await _getSupabaseClient();
+      final client = Supabase.instance.client;
       final response = await client.auth.signUp(
         email: email.trim(),
         password: password,
         data: {
-          'full_name': name.trim(),
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
+          'phone': phone.trim(),
           'role': role.name,
         },
       );
@@ -203,7 +205,8 @@ class AuthController extends StateNotifier<AuthControllerState> {
         // Requiere confirmación por correo (Confirm email activado)
         state = state.copyWith(
           isLoading: false,
-          successMessage: 'Registro exitoso. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.',
+          successMessage:
+              'Registro exitoso. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.',
         );
       }
       return true;
@@ -223,23 +226,75 @@ class AuthController extends StateNotifier<AuthControllerState> {
   }
 
   Future<bool> resetPassword(String email) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
     final normalizedEmail = email.trim();
     final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegExp.hasMatch(normalizedEmail)) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Ingresa un correo electrónico válido.');
+      state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Ingresa un correo electrónico válido.');
       return false;
     }
 
     try {
-      await (await _getSupabaseClient()).auth.resetPasswordForEmail(normalizedEmail);
+      await Supabase.instance.client.auth
+          .resetPasswordForEmail(normalizedEmail);
       state = state.copyWith(isLoading: false);
       return true;
     } on AuthException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.message));
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.message));
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: _translateAuthError(e.toString()));
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.toString()));
+      return false;
+    }
+  }
+
+  Future<bool> completeOAuthProfile({
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required UserRole role,
+  }) async {
+    state =
+        state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+
+    try {
+      final client = Supabase.instance.client;
+      final response = await client.auth.updateUser(
+        UserAttributes(
+          data: {
+            'first_name': firstName.trim(),
+            'last_name': lastName.trim(),
+            'full_name': '${firstName.trim()} ${lastName.trim()}'.trim(),
+            'phone': phone.trim(),
+            'role': role.name,
+          },
+        ),
+      );
+      final user = response.user;
+      if (user == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'No se pudo guardar el perfil en Supabase.',
+        );
+        return false;
+      }
+
+      _ref.read(authStateProvider.notifier).setUser(_mapSupabaseUser(user));
+      state = state.copyWith(
+          isLoading: false, successMessage: '¡Perfil completado!');
+      return true;
+    } on AuthException catch (e) {
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.message));
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+          isLoading: false, errorMessage: _translateAuthError(e.toString()));
       return false;
     }
   }
@@ -247,7 +302,7 @@ class AuthController extends StateNotifier<AuthControllerState> {
   /// Cierra la sesión activa en Supabase y limpia el estado local
   Future<void> signOut() async {
     try {
-      final client = await _getSupabaseClient();
+      final client = Supabase.instance.client;
       await client.auth.signOut();
     } catch (_) {}
     _ref.read(authStateProvider.notifier).setUser(null);
@@ -255,10 +310,12 @@ class AuthController extends StateNotifier<AuthControllerState> {
 
   String _translateAuthError(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('invalid login credentials') || lower.contains('invalid credentials')) {
+    if (lower.contains('invalid login credentials') ||
+        lower.contains('invalid credentials')) {
       return 'Correo o contraseña incorrectos.';
     }
-    if (lower.contains('user already registered') || lower.contains('email already in use')) {
+    if (lower.contains('user already registered') ||
+        lower.contains('email already in use')) {
       return 'Ya existe una cuenta con este correo electrónico.';
     }
     if (lower.contains('password should be at least')) {
@@ -273,13 +330,15 @@ class AuthController extends StateNotifier<AuthControllerState> {
     if (lower.contains('network') || lower.contains('failed to fetch')) {
       return 'Error de conexión de red. Verifica tu internet.';
     }
-    if (lower.contains('isinitialized') || lower.contains('initialize the supabase')) {
+    if (lower.contains('isinitialized') ||
+        lower.contains('initialize the supabase')) {
       return 'Reiniciando conexión con Supabase... Por favor vuelve a presionar el botón.';
     }
     return message;
   }
 }
 
-final authControllerProvider = StateNotifierProvider<AuthController, AuthControllerState>((ref) {
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AuthControllerState>((ref) {
   return AuthController(ref);
 });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -70,6 +71,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             : authState.errorMessage ?? 'No se pudo enviar el correo.'),
       ),
     );
+  }
+
+  Future<void> _onSocialLogin(OAuthProvider provider) async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(provider);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   @override
@@ -299,6 +311,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         'Iniciar Sesión',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
+              ),
+
+              const SizedBox(height: 28),
+
+              const Row(
+                children: [
+                  Expanded(child: Divider(color: Color(0xFFE5E1DB))),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      'o ingresa con',
+                      style: TextStyle(fontSize: 12, color: _textMuted),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Color(0xFFE5E1DB))),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _onSocialLogin(OAuthProvider.google),
+                      icon: const Text(
+                        'G',
+                        style: TextStyle(
+                          color: Color(0xFFEA4335),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      label: const Text('Google'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _textMain,
+                        backgroundColor: _cardBg,
+                        minimumSize: const Size(0, 44),
+                        side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.apple, size: 20),
+                      label: const Text('Apple'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _textMain,
+                        backgroundColor: _cardBg,
+                        minimumSize: const Size(0, 44),
+                        side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 28),

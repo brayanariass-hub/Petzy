@@ -11,8 +11,10 @@ void main() {
 
   group('Supabase Auth Configuration & State Tests', () {
     test('SupabaseConstants has valid project URL and publishable key', () {
-      expect(SupabaseConstants.supabaseUrl, equals('https://zbuafdyohmnrgssvgedu.supabase.co'));
-      expect(SupabaseConstants.supabasePublishableKey, equals('sb_publishable_XuGXrZT1Psku6tEuFrbR2A_tKNiEC2c'));
+      expect(SupabaseConstants.supabaseUrl,
+          equals('https://zbuafdyohmnrgssvgedu.supabase.co'));
+      expect(SupabaseConstants.supabasePublishableKey,
+          equals('sb_publishable_XuGXrZT1Psku6tEuFrbR2A_tKNiEC2c'));
     });
 
     test('Initial authStateProvider is null before login', () {
