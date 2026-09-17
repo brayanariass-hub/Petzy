@@ -34,6 +34,7 @@ void main() {
         name: 'Lina Gómez',
         email: 'lina@petzy.com',
         role: UserRole.owner,
+        isFirstLogin: true,
       );
 
       container.read(authStateProvider.notifier).setUser(testUser);
@@ -44,6 +45,7 @@ void main() {
       expect(user?.name, equals('Lina Gómez'));
       expect(user?.email, equals('lina@petzy.com'));
       expect(user?.role, equals(UserRole.owner));
+      expect(user?.isFirstLogin, equals(true));
 
       // Test sign out state clearing
       container.read(authStateProvider.notifier).setUser(null);
