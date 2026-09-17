@@ -125,6 +125,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Future<void> _cancelOAuthRegistration() async {
+    await ref.read(authControllerProvider.notifier).signOut();
+    if (mounted) {
+      context.go('/login');
+    }
+  }
+
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -619,13 +626,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       style: TextStyle(color: _textMuted, fontSize: 13),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go('/login');
-                        }
-                      },
+                      onTap: _isOAuthRegistration
+                          ? _cancelOAuthRegistration
+                          : () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go('/login');
+                              }
+                            },
                       child: const Text(
                         'Iniciar Sesión',
                         style: TextStyle(
