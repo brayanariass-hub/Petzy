@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../domain/entities/user_entity.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import 'owner_home_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bookingsState = ref.watch(bookingNotifierProvider);
     final user = ref.watch(authStateProvider);
+
+    if (user?.role == UserRole.owner) {
+      return const OwnerHomeScreen();
+    }
+
+    final bookingsState = ref.watch(bookingNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hola, ${user?.name ?? "Usuario"} 👋'),
+        title: const Text('Panel de sitter'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           )
         ],
       ),
@@ -29,7 +36,8 @@ class HomeScreen extends ConsumerWidget {
         data: (bookings) {
           if (bookings.isEmpty) {
             return const Center(
-              child: Text('No tienes reservas activas', style: TextStyle(color: AppColors.textMuted)),
+              child: Text('No tienes reservas activas',
+                  style: TextStyle(color: AppColors.textMuted)),
             );
           }
           return ListView.builder(
@@ -46,18 +54,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   title: Text('Reserva #${item.id}'),
                   subtitle: Text('Estado: ${item.status.name.toUpperCase()}'),
-                  trailing: Text('\$${item.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  trailing: Text('\$${item.total.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => GoRouter.of(context).push('/booking'),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nueva Reserva', style: TextStyle(color: Colors.white)),
       ),
     );
   }

@@ -18,6 +18,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loggingIn = state.matchedLocation == '/login';
       final registering = state.matchedLocation == '/register';
       final registeringPet = state.matchedLocation == '/register-pet';
+      final isReturnToPets =
+          state.uri.queryParameters['returnToPets'] == 'true';
       final sitterServices = state.matchedLocation == '/sitter-services';
       if (user == null && !loggingIn && !registering) {
         return '/login';
@@ -27,7 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (user != null &&
           user.role == UserRole.admin &&
-          (loggingIn || registering || registeringPet || sitterServices)) {
+          (loggingIn || registering || (registeringPet && !isReturnToPets) || sitterServices)) {
         return '/home';
       }
       if (user != null && user.profileComplete && user.isFirstLogin) {
@@ -41,7 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (user != null &&
           user.profileComplete &&
           !user.isFirstLogin &&
-          (loggingIn || registering || registeringPet || sitterServices)) {
+          (loggingIn || registering || (registeringPet && !isReturnToPets) || sitterServices)) {
         return '/home';
       }
       return null;
@@ -53,7 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (context, state) => const RegisterScreen()),
       GoRoute(
           path: '/register-pet',
-          builder: (context, state) => const RegisterPetScreen()),
+          builder: (context, state) => RegisterPetScreen(
+                returnToPets:
+                    state.uri.queryParameters['returnToPets'] == 'true',
+              )),
       GoRoute(
           path: '/sitter-services',
           builder: (context, state) => const SitterServicesScreen()),

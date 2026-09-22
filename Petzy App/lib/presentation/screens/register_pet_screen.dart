@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterPetScreen extends ConsumerStatefulWidget {
-  const RegisterPetScreen({super.key});
+  const RegisterPetScreen({super.key, this.returnToPets = false});
+
+  final bool returnToPets;
 
   @override
   ConsumerState<RegisterPetScreen> createState() => _RegisterPetScreenState();
@@ -299,7 +302,7 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
       );
     }
 
-    return ownerId as String;
+    return ownerId.toString();
   }
 
   // ==========================================================
@@ -310,6 +313,7 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
     if (_isLoading) return;
 
     if (!_formKey.currentState!.validate()) {
+      _showError('Por favor completa los campos obligatorios.');
       return;
     }
 
@@ -330,6 +334,7 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
 
     final List<String> createdPetIds = [];
     final List<String> uploadedPaths = [];
+    bool hasPhotoUploadError = false;
 
     try {
       // --------------------------------------------------------
@@ -486,7 +491,11 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
         final insertedPet =
             await supabase.from('pets').insert(petData).select('id').single();
 
-        final petId = insertedPet['id'] as String;
+        final petId = insertedPet['id']?.toString();
+
+        if (petId == null || petId.isEmpty) {
+          throw Exception('La mascota se creó sin un ID válido.');
+        }
 
         createdPetIds.add(petId);
 
@@ -495,59 +504,74 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
         // ------------------------------------------------------
 
         if (pet.selectedImage != null) {
-          final extension = _getFileExtension(
-            pet.selectedImage!.path,
-          );
+          try {
+            final extension = _getFileExtension(
+              pet.selectedImage!.path,
+            );
 
-          final uploadedPath = '${authUser.id}/$petId.$extension';
+            final uploadedPath = '${authUser.id}/$petId.$extension';
+            final contentType = _getContentType(extension);
 
-          await supabase.storage.from('pet-photos').upload(
-                uploadedPath,
-                pet.selectedImage!,
-                fileOptions: const FileOptions(
-                  upsert: false,
-                ),
-              );
+            await supabase.storage.from('pet-photos').upload(
+                  uploadedPath,
+                  pet.selectedImage!,
+                  fileOptions: FileOptions(
+                    contentType: contentType,
+                    upsert: true,
+                  ),
+                );
 
-          uploadedPaths.add(uploadedPath);
+            uploadedPaths.add(uploadedPath);
 
-          // ----------------------------------------------------
-          // URL PÚBLICA
-          // ----------------------------------------------------
+            // ----------------------------------------------------
+            // URL PÚBLICA
+            // ----------------------------------------------------
 
-          final photoUrl =
-              supabase.storage.from('pet-photos').getPublicUrl(uploadedPath);
+            final photoUrl =
+                supabase.storage.from('pet-photos').getPublicUrl(uploadedPath);
 
-          // ----------------------------------------------------
-          // GUARDAR URL
-          // ----------------------------------------------------
+            // ----------------------------------------------------
+            // GUARDAR URL
+            // ----------------------------------------------------
 
-          await supabase.from('pets').update({
-            'photo_url': photoUrl,
-          }).eq('id', petId);
+            await supabase.from('pets').update({
+              'photo_url': photoUrl,
+            }).eq('id', petId);
+          } catch (storageError) {
+            debugPrint(
+                'Advertencia: No se pudo subir la foto de la mascota: $storageError');
+            hasPhotoUploadError = true;
+          }
         }
       }
 
-      // --------------------------------------------------------
-      // 3. Completar primer login
-      // --------------------------------------------------------
+      if (!mounted) return;
 
+      if (hasPhotoUploadError) {
+        _showError('Mascota(s) guardada(s), pero no se pudo procesar la foto.');
+      }
+
+      if (widget.returnToPets) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          context.go('/home');
+        }
+        return;
+      }
+
+      // Solo el registro del primer inicio completa el onboarding.
       await ref.read(authStateProvider.notifier).completeFirstLogin();
 
       if (!mounted) return;
 
-      _showSuccess(
-        _pets.length == 1
-            ? 'Mascota guardada correctamente.'
-            : '${_pets.length} mascotas guardadas correctamente.',
-      );
-
-      // El router observa authStateProvider.
-      // completeFirstLogin() cambia isFirstLogin a false
-      // y GoRouter debe llevar al Home.
+      context.go('/home');
     } catch (e) {
+      debugPrint('Error guardando mascotas: $e');
+
       // --------------------------------------------------------
       // LIMPIEZA DE FOTOS
+
       // --------------------------------------------------------
 
       for (final uploadedPath in uploadedPaths) {
@@ -599,15 +623,28 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
 
     switch (extension) {
       case 'jpeg':
-        return 'jpg';
-
       case 'jpg':
+        return 'jpg';
       case 'png':
       case 'webp':
         return extension;
 
       default:
         return 'jpg';
+    }
+  }
+
+  String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
     }
   }
 
@@ -618,14 +655,14 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
   String _friendlyErrorMessage(Object error) {
     final message = error.toString();
 
-    if (message.contains('owners')) {
+    if (message.contains('No se encontró el perfil')) {
       return 'No encontramos tu perfil de propietario. '
           'Cierra sesión e inicia sesión nuevamente.';
     }
 
-    if (message.contains('pets')) {
+    if (message.contains('pets') || message.contains('PostgrestException')) {
       return 'No se pudieron guardar las mascotas. '
-          'Verifica los datos e inténtalo nuevamente.';
+          'Verifica los datos y los permisos de tu cuenta.';
     }
 
     if (message.contains('pet-photos')) {
@@ -646,17 +683,6 @@ class _RegisterPetScreenState extends ConsumerState<RegisterPetScreen> {
   // ==========================================================
 
   void _showError(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccess(String message) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
