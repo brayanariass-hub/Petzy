@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:petzy/core/constants/supabase_constants.dart';
-import 'package:petzy/domain/entities/user_entity.dart';
-import 'package:petzy/presentation/providers/auth_provider.dart';
+import 'package:petzy/features/auth/domain/entities/user_entity.dart';
+import 'package:petzy/features/auth/presentation/providers/auth_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

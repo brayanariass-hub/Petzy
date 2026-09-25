@@ -11,6 +11,16 @@
 .swp
 migrate_working_dir/
 
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -64,7 +74,6 @@ build/
 **/ios/Runner/GeneratedPluginRegistrant.*
 
 # Web related
-lib/generated_plugin_registrant.dart
 
 # Symbolication related
 app.*.symbols
